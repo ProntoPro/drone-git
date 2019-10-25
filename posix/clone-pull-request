@@ -13,8 +13,11 @@ fi
 set -e
 set -x
 
-git fetch ${FLAGS} origin +refs/heads/${DRONE_COMMIT_BRANCH}:
-git checkout ${DRONE_COMMIT_BRANCH}
+CURRENT_BRANCH=$(echo ${DRONE_COMMIT_REFSPEC} | awk  -F ':' '{ print $1 }')
+BASE_BRANCH=$(echo ${DRONE_COMMIT_REFSPEC} | awk  -F ':' '{ print $2 }')
 
-git fetch origin ${DRONE_COMMIT_SHA}
-git merge ${DRONE_COMMIT_SHA}
+git fetch ${FLAGS} origin ${CURRENT_BRANCH}
+# git fetch ${FLAGS} origin ${BASE_BRANCH}
+
+git checkout ${CURRENT_BRANCH}
+git pull --rebase origin ${BASE_BRANCH}
