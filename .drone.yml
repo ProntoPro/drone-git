@@ -12,3 +12,35 @@ pipeline:
         - master
       event:
         - push
+
+  notify-image-prod:
+    image: plugins/slack
+    channel: tech-artifacts
+    username: drone
+    secrets:
+      - slack_webhook
+    template: drone-git images for ${DRONE_COMMIT_BRANCH}-${DRONE_BUILD_NUMBER} published.
+    target: production
+    when:
+      branch:
+        - master
+      event:
+        - push
+      status:
+        - success
+
+  notify-image-prod-failure:
+    image: plugins/slack
+    channel: tech-artifacts-fail
+    username: drone
+    secrets:
+      - slack_webhook
+    template: drone-git images for ${DRONE_COMMIT_BRANCH}-${DRONE_BUILD_NUMBER} failed to be published.
+    target: production
+    when:
+      branch:
+        - master
+      event:
+        - push
+      status:
+        - failure
