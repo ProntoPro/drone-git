@@ -51,6 +51,25 @@ steps:
   depends_on:
   - publish-image-prod
 
+- name: move-asana-cards-to-production
+  image: plugins/webhook
+  settings:
+    content_type: application/json
+    template: |
+      {
+        "owner": "{{ repo.owner }}",
+        "repo": "{{ repo.name }}",
+        "section": "production",
+        "sha": "${DRONE_COMMIT}"
+      }
+    urls: https://rowdy.tools.prontopro.tech/v1/drone/tag
+  environment:
+    PLUGIN_HEADERS:
+      from_secret: rowdy_shared_secret
+    PLUGIN_VALID_RESPONSE_CODES: 204
+  depends_on:
+  - publish-image-prod
+
 image_pull_secrets:
 - dockerconfig
 
@@ -59,5 +78,13 @@ trigger:
   - master
   event:
   - push
+
+---
+kind: secret
+name: rowdy_shared_secret
+
+get:
+  path: drone-v1-secret-rowdy
+  name: shared_secret
 
 ...
