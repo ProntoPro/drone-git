@@ -1,8 +1,0 @@
-labels:
-  blockers:
-    - "status/ON-HOLD"
-    - "status/WIP"
-  requirements:
-    - "kind/"
-    - "squad/"
-    - "status/OK-TO-MERGE"

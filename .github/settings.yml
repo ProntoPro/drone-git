@@ -37,8 +37,8 @@ branches:
         contexts:
           - continuous-integration/drone/pr
           - continuous-integration/drone/push
-          - ProntoPro/rex/pr/labels
-          - ProntoPro/rex/pr/milestone
+          - rowdy/labels
+          - rowdy/milestone
       enforce_admins: false
       restrictions:
         users: []

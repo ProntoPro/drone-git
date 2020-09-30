@@ -1,47 +1,90 @@
-pipeline:
-  publish-image:
-    image: plugins/docker
+---
+kind: pipeline
+type: kubernetes
+name: push
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: publish-image-prod
+  image: plugins/docker
+  settings:
+    password:
+      from_secret: docker_password
     repo: prontopro/drone-git
-    dockerfile: Dockerfile
-    secrets: [docker_username, docker_password]
-    tags:
-      - latest
-      - ${DRONE_COMMIT_BRANCH}
-      - ${DRONE_COMMIT_BRANCH}-${DRONE_BUILD_NUMBER}
-    when:
-      branch:
-        - master
-      event:
-        - push
+    tag:
+    - latest
+    - ${DRONE_COMMIT_BRANCH}
+    - ${DRONE_COMMIT_BRANCH}-${DRONE_BUILD_NUMBER}
+    username:
+      from_secret: docker_username
+  depends_on:
+  - build
 
-  notify-image-prod:
-    image: plugins/slack
+- name: notify-image-prod
+  image: plugins/slack
+  settings:
     channel: tech-artifacts
-    username: drone
-    secrets:
-      - slack_webhook
     template: drone-git images for ${DRONE_COMMIT_BRANCH}-${DRONE_BUILD_NUMBER} published.
-    target: production
-    when:
-      branch:
-        - master
-      event:
-        - push
-      status:
-        - success
+    username: drone-v1
+    webhook:
+      from_secret: slack_webhook
+  when:
+    status:
+    - success
+  depends_on:
+  - publish-image-prod
 
-  notify-image-prod-failure:
-    image: plugins/slack
+- name: notify-image-prod-failure
+  image: plugins/slack
+  settings:
     channel: tech-artifacts-fail
-    username: drone
-    secrets:
-      - slack_webhook
     template: drone-git images for ${DRONE_COMMIT_BRANCH}-${DRONE_BUILD_NUMBER} failed to be published.
-    target: production
-    when:
-      branch:
-        - master
-      event:
-        - push
-      status:
-        - failure
+    username: drone-v1
+    webhook:
+      from_secret: slack_webhook
+  when:
+    status:
+    - failure
+  depends_on:
+  - publish-image-prod
+
+- name: move-asana-cards-to-production
+  image: plugins/webhook
+  settings:
+    content_type: application/json
+    template: |
+      {
+        "owner": "{{ repo.owner }}",
+        "repo": "{{ repo.name }}",
+        "section": "production",
+        "sha": "${DRONE_COMMIT}"
+      }
+    urls: https://rowdy.tools.prontopro.tech/v1/drone/tag
+  environment:
+    PLUGIN_HEADERS:
+      from_secret: rowdy_shared_secret
+    PLUGIN_VALID_RESPONSE_CODES: 204
+  depends_on:
+  - publish-image-prod
+
+image_pull_secrets:
+- dockerconfig
+
+trigger:
+  branch:
+  - master
+  event:
+  - push
+
+---
+kind: secret
+name: rowdy_shared_secret
+
+get:
+  path: drone-v1-secret-rowdy
+  name: shared_secret
+
+...
